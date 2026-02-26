@@ -8,8 +8,12 @@ This project uses Podman for containerized Ollama deployment on macOS.
 
 | Port  | Model     | Description          |
 |-------|-----------|----------------------|
-| 55077 | granite4  | IBM Granite model    |
-| 66044 | qwen-coder| Qwen Coder model    |
+| 55077 | granite  | IBM Granite model    |
+| 55088 | deepseek | DeepSeek R1          |
+| 66044 | qwen-coder | Qwen Coder model  |
+| 66033 | codellama | Code Llama        |
+
+Full mapping (all environments): **docs/AGENTS.md**.
 
 ## Deployment Steps
 
