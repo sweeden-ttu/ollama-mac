@@ -1,0 +1,20 @@
+# Miniconda environment for LangChain, LangGraph, and LangSmith
+# Create: conda env create -f environment-langsmith.yml
+# Activate: conda activate LangSmith
+# Run tests: pytest tests/ -v
+
+name: LangSmith
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.10,<3.13
+  - pip
+  - pip:
+    - langchain>=0.3
+    - langchain-core>=0.3
+    - langchain-community>=0.3
+    - langgraph>=0.2
+    - langsmith>=0.2
+    - pytest>=7.0
+    - pytest-cov>=4.0
