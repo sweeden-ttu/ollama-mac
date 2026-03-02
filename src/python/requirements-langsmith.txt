@@ -1,8 +1,0 @@
-# Pip-only deps for LangSmith env (use with: conda create -n LangSmith python=3.11 && conda activate LangSmith && pip install -r requirements-langsmith.txt)
-langchain>=0.3
-langchain-core>=0.3
-langchain-community>=0.3
-langgraph>=0.2
-langsmith>=0.2
-pytest>=7.0
-pytest-cov>=4.0
