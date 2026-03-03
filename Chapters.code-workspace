@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": "../CS5374_Software_VV/Chapters"
+		},
+		{
+			"path": "../Library"
+		},
+		{
+			"path": "../ll"
+		},
+		{
+			"path": "../ollama-hpcc"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../CS5374_Software_VV"
+		}
+	],
+	"settings": {}
+}

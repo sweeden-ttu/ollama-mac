@@ -1,165 +1,145 @@
 # HPCC Ollama Job Submission Pipeline
 
-Here's an **updated automated pipeline** that integrates the **ollama-hpcc README instructions** for proper Ollama job submission using the provided aliases and tunneling procedures.[^1]
+This document describes how to use the HPCC Ollama aliases for job submission and tunneling.
 
-## Batch Job Pipeline (Recommended)
+## Quick Start
 
-### Step 1. Check Current Jobs
+### 1. Source the aliases
 
+Add to your `~/.zshrc`:
 ```bash
-hpcc-jobs
+source ~/ollama-hpcc/scripts/hpcc-aliases.zsh
 ```
 
+### 2. Check job status
+```bash
+hpcc-info
+# or
+hpcc-jobs
+# or
+hpcc-latest-info 
+```
 
-### Step 2. Submit Ollama Batch Job
-
-Use model-specific aliases for one-command submission:
-
+### 3. Submit a batch job
 ```bash
 granite          # granite4:3b model (default)
-deepseek         # deepseek-coder model  
+deepseek         # deepseek-coder model
 codellama        # codellama model
 qwen             # qwen model
 ```
 
-**Example output:**
-
-```
-Submitted batch job 12345
-Node: cpu-01-42
-Port: 34935
-```
-
-
-### Step 3. Create SSH Tunnel (From Mac)
-
-Using the **node** and **port** from Step 2 output:
-
+### 4. Wait for job to start running, then run ollama 
 ```bash
-ssh sweeden@login.hpcc.ttu.edu -L 34935:cpu-01-42:34935
+hpcc-tunnel              # Auto-detect running granite4 job
+hpcc-tunnel granite4:3b  # Specify model explicitly
+hpcc-tunnel deepseek-coder:6.7b
 ```
 
-
-### Step 4. Connect Locally to Ollama
-
+### 5. Connect to Ollama
 ```bash
-OLLAMA_HOST=127.0.0.1:34935 ollama list
-OLLAMA_HOST=127.0.0.1:34935 ollama run granite4:3b
+curl http://localhost:<PORT>/api/tags
 ```
 
+---
 
-***
+## Commands Reference
 
-## Interactive Pipeline
+### Connection
+| Command | Description |
+|---------|-------------|
+| `hpcc` | SSH to HPCC login node |
+| `hpcc-login` | SSH to HPCC login node |
 
-### Step 1. Start Interactive GPU Session
+### Job Management
+| Command | Description |
+|---------|-------------|
+| `hpcc-info` | Show job queue and .info files |
+| `hpcc-status` | Show Slurm job queue |
+| `hpcc-jobs` | Alias for hpcc-status |
+| `hpcc-kill JOBID` | Kill a specific job |
+| `hpcc-git-pull` | Pull latest ollama-hpcc repo |
 
+### Tunnels
+| Command | Description |
+|---------|-------------|
+| `hpcc-tunnel [MODEL]` | Auto-create tunnel to running Ollama job |
+| `hpcc-tunnel-jump` | Legacy tunnel command |
+
+### Batch Jobs
+| Command | Description |
+|---------|-------------|
+| `granite` | Submit granite4:3b batch job |
+| `deepseek` | Submit deepseek-coder batch job |
+| `codellama` | Submit codellama batch job |
+| `qwen` | Submit qwen-coder batch job |
+
+### Interactive Sessions
+| Command | Description |
+|---------|-------------|
+| `granite-interactive` | Start interactive GPU session |
+| `deepseek-interactive` | Start interactive GPU session |
+| `codellama-interactive` | Start interactive GPU session |
+| `qwen-interactive` | Start interactive GPU session |
+
+---
+
+## Environment Variables
+
+When a job runs, the following are set in `.info` files in `~/ollama-logs/`:
+
+```
+JOB_ID=<job_id>
+MODEL=<model_name>
+NODE=<hostname>
+PORT=<port>
+OLLAMA_HOST=http://127.0.0.1:<port>/
+OLLAMA_BASE_URL=http://localhost:<port>/api
+STARTED=<timestamp>
+```
+
+---
+
+## Debugging
+
+### Check job status
 ```bash
-granite-interactive    # or deepseek-interactive, etc.
-```
-
-This automatically:
-
-1. Requests GPU node via `/etc/slurm/scripts/interactive -p nocona`
-2. Starts Ollama server on dynamic port
-3. Displays **hostname** and **port**
-
-### Step 2. Note Host/Port from Output
-
-```
-Node: cpu-01-42
-Port: 34935
-```
-
-
-### Step 3. Tunnel from Mac (Same as Batch)
-
-```bash
-ssh sweeden@login.hpcc.ttu.edu -L 34935:cpu-01-42:34935
-```
-
-
-***
-
-## Complete Automation Script
-
-Save as `~/scripts/hpcc-ollama-pipeline.zsh`:
-
-```zsh
-#!/bin/zsh
-# Automated Ollama HPCC Pipeline
-
-MODEL=${1:-granite}
-
-echo "🔍 Checking jobs..."
+hpcc-info
 hpcc-jobs
-
-echo "🚀 Submitting $MODEL batch job..."
-NODE_PORT=$($MODEL 2>&1 | grep -E "(Node|Port):" | paste -sd ' ')
-
-if [[ -z "$NODE_PORT" ]]; then
-    echo "❌ Job submission failed"
-    exit 1
-fi
-
-read NODE PORT <<< "$NODE_PORT"
-echo "✅ Job submitted! Node: $NODE, Port: $PORT"
-
-echo "🌉 Creating tunnel..."
-ssh sweeden@login.hpcc.ttu.edu -L $PORT:$NODE:$PORT -N &
-TUNNEL_PID=$!
-
-echo "🔗 Ollama ready at 127.0.0.1:$PORT"
-echo "💡 Test with: OLLAMA_HOST=127.0.0.1:$PORT ollama list"
-echo "🛑 Kill tunnel: kill $TUNNEL_PID"
-
-# Debug info
-echo ""
-echo "Tunnel debugging:"
-echo "lsof -i :$PORT"
-echo "curl -v http://127.0.0.1:$PORT/api/tags"
 ```
 
-**Usage:**
-
+### View latest job info
 ```bash
-chmod +x ~/scripts/hpcc-ollama-pipeline.zsh
-hpcc-ollama-pipeline.zsh granite
-hpcc-ollama-pipeline.zsh deepseek
+hpcc-latest-log
 ```
 
-
-***
-
-## Job Management Commands
-
-| Command | Purpose |
-| :-- | :-- |
-| `hpcc-jobs` | View queued/running jobs |
-| `hpcc-login` | SSH to login node |
-| `hpcc "squeue -u $USER"` | Run any Slurm command remotely |
-| `hpcc-git-pull` | Update ollama-hpcc repo on HPCC |
-
-
-***
-
-## Tunnel Debugging Checklist
-
-If connection fails:
-
-1. **Verify tunnel:**
-
+### Kill stuck job
 ```bash
-lsof -i :34935           # Should show SSH process
-curl -v http://127.0.0.1:34935/api/tags
+hpcc-kill <JOB_ID>
 ```
 
-2. **Correct format:** `ssh sweeden@login.hpcc.ttu.edu -L pppp:NODE:pppp`
-3. **Node name** must match exactly from interactive output (e.g., `cpu-01-42`)
+### Check tunnel
+```bash
+lsof -i :<PORT>
+curl -v http://localhost:<PORT>/api/tags
+```
 
-This pipeline eliminates manual steps and follows the exact **ollama-hpcc** procedures from your README![^1]
+### Kill tunnel
+```bash
+pkill -f "ssh.*-L.*<PORT>"
+```
 
-<div align="center">⁂</div>
+---
 
-[^1]: README.md
+## Troubleshooting
 
+**Job not running?**
+- Run `hpcc-info` to check queue status
+- Jobs must be RUNNING before creating tunnel
+
+**Tunnel not working?**
+- Verify job is running: `hpcc-info`
+- Check port: `lsof -i :<PORT>`
+- Kill old tunnels: `pkill -f ssh.*-L`
+
+**Wrong model?**
+- Pass model explicitly: `hpcc-tunnel deepseek-coder:6.7b`
